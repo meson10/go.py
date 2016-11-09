@@ -10,6 +10,12 @@ GO = "go"
 GOPATH = "gopath"
 README = "https://golang.org/doc/install"
 
+def usage():
+    print
+    print 'Seems you have made a mistake in usage. Check the docs here https://github.com/meson10/go.py'
+    print 'go.py go build .'
+    print 'go.py <your go command>'
+
 def walkUp(bottom):
     """Mimic walk but in reverse"""
     bottom = os.path.realpath(bottom)
@@ -90,7 +96,10 @@ def main():
         sys.exit(1)
 
     setGoPath(gopath)
-    execute(sys.argv[1:])
+    try:
+        execute(sys.argv[1:])
+    except (IndexError, OSError):
+        usage()
 
 if __name__ == "__main__":
     main()
