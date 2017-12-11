@@ -1,10 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 import sys
 import os.path
 import subprocess
 import distutils.spawn
+from argparse import ArgumentParser
+
 
 GO = "go"
 GOPATH = "gopath"
@@ -55,8 +57,9 @@ def findGoPath(cwd, dest=GOPATH):
 
 
 def setGoPath(path):
-    print "Setting GOPATH to %s" % path
-    os.environ["GOPATH"] = path
+    sys.stderr.write("Setting GOPATH to %s" % path)
+    new_env = os.environ.copy()
+    new_env["GOPATH"] = path
 
     for name in ["bin", "src", "pkg"]:
         dpath = os.path.join(path, name)
@@ -65,32 +68,79 @@ def setGoPath(path):
 
         os.mkdir(dpath)
 
-    os.environ["PATH"] += os.pathsep + os.pathsep.join([
+    new_env["PATH"] += os.pathsep + os.pathsep.join([
         os.path.join(path, "bin")
     ])
 
+    return new_env
 
 def missingGO(url=README):
-    print "Cannot find GO in $PATH. Please follow the instructions here %s" % (
-        url)
+    sys.stderr.write("Cannot find GO in $PATH. Please follow the instructions here %s" % url)
 
 
-def execute(cmd):
-    subprocess.call(cmd)
+def execute(cmd, gopath):
+    p = subprocess.Popen(cmd, env=setGoPath(gopath))
+    p.wait()
 
 
-def main():
+def create_symlink(src, dest):
+    dirname = src.rsplit("/", 1)[-1]
+    try:
+        print("Making dir %s" % dest)
+        os.makedirs(dest)
+    except FileExistsError:
+        pass
+
+    link = os.path.join(dest, dirname)
+    try:
+        print("Making Symlink %s" % link)
+        os.symlink(src, link)
+    except FileExistsError:
+        pass
+
+    return link
+
+
+def main(args):
     if not isGoInPath():
         missingGO()
         sys.exit(1)
 
     gopath = findGoPath(getCwd())
     if not gopath:
-        print "Cannot find any GOPATH"
+        sys.stderr.write("Cannot find any GOPATH")
         sys.exit(1)
 
-    setGoPath(gopath)
-    execute(sys.argv[1:])
+    if args.link:
+        dest_dir = os.path.join(gopath, args.dest)
+        create_symlink(args.link, dest_dir)
+        sys.exit(1)
+        return
+
+    try:
+        execute(sys.argv[1:], gopath)
+    except KeyboardInterrupt as e:
+        sys.stderr.write("Ctrl-C called")
+        sys.exit(1)
+
+
+def dir_abspath(name):
+    return os.path.abspath(name)
+
+
+def cli_parser():
+    args = ArgumentParser(description="go.py")
+    args.add_argument("--link", dest="link",
+                      type=dir_abspath,
+                      help="Dir to link")
+
+    args.add_argument("--dest", dest="dest",
+                      help="package/structure/")
+
+    return args
+
 
 if __name__ == "__main__":
-    main()
+    cli = cli_parser()
+    args, _ = cli.parse_known_args()
+    main(args)
