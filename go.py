@@ -112,7 +112,7 @@ def main(args):
         sys.exit(1)
 
     if args.link:
-        dest_dir = os.path.join(gopath, args.dest)
+        dest_dir = os.path.join(gopath, 'src', args.dest)
         create_symlink(args.link, dest_dir)
         sys.exit(1)
         return
@@ -144,3 +144,4 @@ if __name__ == "__main__":
     cli = cli_parser()
     args, _ = cli.parse_known_args()
     main(args)
+    
