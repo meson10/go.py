@@ -144,4 +144,3 @@ if __name__ == "__main__":
     cli = cli_parser()
     args, _ = cli.parse_known_args()
     main(args)
-    
