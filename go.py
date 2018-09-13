@@ -56,10 +56,8 @@ def findGoPath(cwd, dest=GOPATH):
     return findGoPath(os.path.join(cwd, ".."))
 
 
-def setGoPath(path):
-    sys.stderr.write("Setting GOPATH to %s" % path)
-    new_env = os.environ.copy()
-    new_env["GOPATH"] = path
+def set_env(env, path):
+    env["GOPATH"] = path
 
     for name in ["bin", "src", "pkg"]:
         dpath = os.path.join(path, name)
@@ -68,10 +66,14 @@ def setGoPath(path):
 
         os.mkdir(dpath)
 
-    new_env["PATH"] += os.pathsep + os.pathsep.join([
+    env["PATH"] += os.pathsep + os.pathsep.join([
         os.path.join(path, "bin")
     ])
 
+def setGoPath(path):
+    new_env = os.environ.copy()
+    sys.stderr.write("Setting GOPATH to %s" % path)
+    set_env(new_env, path)
     return new_env
 
 def missingGO(url=README):
@@ -117,6 +119,13 @@ def main(args):
         sys.exit(1)
         return
 
+    if args.set:
+        env = {"GOPATH": "", "PATH": os.environ["PATH"]}
+        set_env(env, gopath)
+        x = "export %s" % " ".join(["%s=%s" % (k, v) for k,v in env.items()])
+        print(x)
+        sys.exit(0)
+
     try:
         execute(sys.argv[1:], gopath)
     except KeyboardInterrupt as e:
@@ -130,6 +139,10 @@ def dir_abspath(name):
 
 def cli_parser():
     args = ArgumentParser(description="go.py")
+    args.add_argument("--set", dest="set",
+                      action='store_true',
+                      help="Set for this Shell")
+
     args.add_argument("--link", dest="link",
                       type=dir_abspath,
                       help="Dir to link")
